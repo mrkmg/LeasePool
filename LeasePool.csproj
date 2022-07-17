@@ -18,6 +18,7 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageTags>ObjectPool, Lease</PackageTags>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
