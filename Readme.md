@@ -1,4 +1,4 @@
-﻿LeasePool - V0.6.0
+﻿LeasePool - V0.7.0
 
 A simple, configurable, thread-safe Object Pool. Provides a mechanism for constructing, validating, and disposing of objects on the fly, as well limiting the maximum number of total instantiated object and auto-disposal of stale objects.
 
@@ -12,7 +12,7 @@ using LeasePool;
 ILeasePool<Connection> pool = new LeasePool<Connection>(
     new LeasePoolConfiguration<Connection>()
     {
-        MaxSize = 10,
+        MaxLeases = 10,
         IdleTimeout = TimeSpan.FromSeconds(30),
         Initializer = () => { 
             var connection = new Connection("hostname", "username", "password");

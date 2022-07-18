@@ -12,6 +12,11 @@ namespace LeasePool;
 [SuppressMessage("ReSharper", "UnusedMemberInSuper.Global")]
 public interface ILeasePool<T> : IDisposable
 {
+    /// <summary>
+    /// The number of available leases or -1 if infinite.
+    /// </summary>
+    int AvailableLeases { get; }
+    
     /// <summary><inheritdoc cref="Lease(int, CancellationToken)"/></summary>
     /// <remarks>Will wait forever for a lease.</remarks>
     /// <exception cref="T:System.ObjectDisposedException">The current instance has already been disposed.</exception>
