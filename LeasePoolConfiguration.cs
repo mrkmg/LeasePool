@@ -38,7 +38,7 @@ public class LeasePoolConfiguration<T>
     /// A factory method that is called when an instance of T is to
     /// be disposed.
     /// </summary>
-    /// <remarks>By default, this method checks in the instance is an IDisposable
+    /// <remarks>By default, this method checks if the instance is an IDisposable
     /// and calls Dispose() on it.</remarks>
     public Action<T> Finalizer { get; set; } = DefaultFinalizer;
     
