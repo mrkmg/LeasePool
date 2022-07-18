@@ -1,6 +1,6 @@
-﻿LeasePool - V0.2.0
+﻿LeasePool - V0.3.0
 
-A simple, configurable, thread-safe Object Pool. Provides a mechanism for constructing, validating, and disposing of objects on the fly, as well limiting the maximum number of total instaiated object and auto-disposal of stale objects.
+A simple, configurable, thread-safe Object Pool. Provides a mechanism for constructing, validating, and disposing of objects on the fly, as well limiting the maximum number of total instantiated object and auto-disposal of stale objects.
 
 Adheres to netstandard2.1
 
@@ -12,27 +12,16 @@ using LeasePool;
 ILeasePool<Connection> pool = new LeasePool<Connection>(
     new LeasePoolConfig<Connection>()
     {
-        // Allow a maximum of 10 connections to be open at once.
-        // Default: -1 (no limit)
         MaxLeases = 10,
-        // Automatically dispose of stale connections after 30 seconds.
-        // Default: -1 (no timeout)
         IdleTimeout = TimeSpan.FromSeconds(30),
-        // Function to construct a new connection.
-        // Default: Create new instance with Activator.CreateInstance<T>()
         Initializer = () => { 
             var connection = new Connection("hostname", "username", "password");
             connection.Open();
             return connection;
         },
-        // Ensure that the connection is valid before leasing.
-        // Default: (connection) => true
         Validator = (connection) => connection.IsConnected(),
-        // Clear the history of the connection when returned to the pool.
-        // Default: Do nothing
-        OnReturn = (connection) => connection.ClearHistory(),
-        // Not actually needed, as the default Finalizer will
-        // Call Dispose if T is IDisposable. Just for demo purposes.
+        OnLease = (connection) => connection.StartTransaction(),
+        OnReturn = (connection) => connection.EndTransaction(),
         Finalizer = (connection) => connection.Dispose()
     }
 );
@@ -43,6 +32,16 @@ using (var connection = await pool.Lease(TimeSpan.FromSeconds(2))) {
     // do something with connection
 }
 ```
+
+### Configuration Options
+
+- **MaxLeases** *int* The maximum number of object which can be instantiated at once. Default: -1 (no limit) 
+- **IdleTimeout** *int* The maximum amount of time an object can remain idle before it is automatically disposed. Default: -1 (no timeout)
+- **Initializer** *Func&lt;T&gt;* A function to create a new instance. Default: `() => Activator.CreateInstance<T>()`
+- **Validator** *Func&lt;T, bool&gt;* A function to validate an instance. If this returns false, the object will be disposed. Default: `(instance) => true`
+- **OnLease** *Action&lt;T&gt;* A function to execute before an instance is leased. Default: Do nothing
+- **OnReturn** *Action&lt;T&gt;* A function to execute after an instance is returned. Default: Do nothing
+- **Finalizer** *Action&lt;T&gt;* A function to execute when an instance is disposed. Default: If the object is an `IDisposable`, call `Dispose()` on it.
 
 ### License
 
