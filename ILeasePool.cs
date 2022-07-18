@@ -17,38 +17,40 @@ public interface ILeasePool<T> : IDisposable
     /// </summary>
     int AvailableLeases { get; }
     
-    /// <summary><inheritdoc cref="Lease(int, CancellationToken)"/></summary>
+    /// <summary><inheritdoc cref="LeaseAsync(int, CancellationToken)"/></summary>
     /// <remarks>Will wait forever for a lease.</remarks>
     /// <exception cref="T:System.ObjectDisposedException">The current instance has already been disposed.</exception>
-    Task<ILease<T>> Lease();
+    Task<ILease<T>> LeaseAsync();
 
-    /// <summary><inheritdoc cref="Lease(int, CancellationToken)"/></summary>
+    /// <summary><inheritdoc cref="LeaseAsync(int, CancellationToken)"/></summary>
     /// <remarks>Will wait forever for a lease or until the cancellation token is cancelled.</remarks>
     /// <param name="cancellationToken">Token to cancel waiting for a lease.</param>
     /// <exception cref="T:System.ObjectDisposedException">The current instance has already been disposed.</exception>
-    Task<ILease<T>> Lease(CancellationToken cancellationToken);
+    /// <exception cref="OperationCanceledException">The operation of cancelled.</exception>
+    Task<ILease<T>> LeaseAsync(CancellationToken cancellationToken);
 
-    /// <summary><inheritdoc cref="Lease(int, CancellationToken)"/></summary>
+    /// <summary><inheritdoc cref="LeaseAsync(int, CancellationToken)"/></summary>
     /// <param name="timeout">Time to wait for a lease.</param>
     /// <exception cref="T:System.ObjectDisposedException">The current instance has already been disposed.</exception>
     /// <exception cref="LeaseTimeoutException">Failed to acquire a lease in <paramref name="timeout"/></exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="timeout"/> is a negative number other than -1 milliseconds, which represents an infinite time-out -or- timeout is greater than <see cref="System.Int32.MaxValue"/>.</exception>
-    Task<ILease<T>> Lease(TimeSpan timeout);
+    Task<ILease<T>> LeaseAsync(TimeSpan timeout);
 
-    /// <summary><inheritdoc cref="Lease(int, CancellationToken)"/></summary>
+    /// <summary><inheritdoc cref="LeaseAsync(int, CancellationToken)"/></summary>
     /// <param name="timeout">Time to wait for a lease.</param>
     /// <param name="cancellationToken">Token to cancel waiting for a lease.</param>
     /// <exception cref="T:System.ObjectDisposedException">The current instance has already been disposed.</exception>
     /// <exception cref="LeaseTimeoutException">Failed to acquire a lease in <paramref name="timeout"/></exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="timeout"/> is a negative number other than -1 milliseconds, which represents an infinite time-out -or- timeout is greater than <see cref="System.Int32.MaxValue"/>.</exception>
-    Task<ILease<T>> Lease(TimeSpan timeout, CancellationToken cancellationToken);
+    /// <exception cref="OperationCanceledException">The operation of cancelled.</exception>
+    Task<ILease<T>> LeaseAsync(TimeSpan timeout, CancellationToken cancellationToken);
 
-    /// <summary><inheritdoc cref="Lease(int, CancellationToken)"/></summary>
+    /// <summary><inheritdoc cref="LeaseAsync(int, CancellationToken)"/></summary>
     /// <param name="millisecondsTimeout">Time to wait for a lease.</param>
     /// <exception cref="T:System.ObjectDisposedException">The current instance has already been disposed.</exception>
     /// <exception cref="LeaseTimeoutException">Failed to acquire a lease in <paramref name="millisecondsTimeout"/></exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="millisecondsTimeout"/> is a negative number other than -1 milliseconds, which represents an infinite time-out -or- timeout is greater than <see cref="System.Int32.MaxValue"/>.</exception>
-    Task<ILease<T>> Lease(int millisecondsTimeout);
+    Task<ILease<T>> LeaseAsync(int millisecondsTimeout);
     
     /// <summary>
     /// Acquires a lease from the pool, waiting for one to become available if necessary.
@@ -60,5 +62,24 @@ public interface ILeasePool<T> : IDisposable
     /// <exception cref="T:System.ObjectDisposedException">The current instance has already been disposed.</exception>
     /// <exception cref="LeaseTimeoutException">Failed to acquire a lease in <paramref name="millisecondsTimeout"/></exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="millisecondsTimeout"/> is a negative number other than -1 milliseconds, which represents an infinite time-out -or- timeout is greater than <see cref="System.Int32.MaxValue"/>.</exception>
-    Task<ILease<T>> Lease(int millisecondsTimeout, CancellationToken cancellationToken);
+    Task<ILease<T>> LeaseAsync(int millisecondsTimeout, CancellationToken cancellationToken);
+    
+    /// <summary><inheritdoc cref="LeaseAsync(int, CancellationToken)"/></summary>
+    /// <remarks>Will wait forever for a lease.</remarks>
+    /// <exception cref="T:System.ObjectDisposedException">The current instance has already been disposed.</exception>
+    ILease<T> Lease();
+
+    /// <summary><inheritdoc cref="LeaseAsync(int, CancellationToken)"/></summary>
+    /// <param name="timeout">Time to wait for a lease.</param>
+    /// <exception cref="T:System.ObjectDisposedException">The current instance has already been disposed.</exception>
+    /// <exception cref="LeaseTimeoutException">Failed to acquire a lease in <paramref name="timeout"/></exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="timeout"/> is a negative number other than -1 milliseconds, which represents an infinite time-out -or- timeout is greater than <see cref="System.Int32.MaxValue"/>.</exception>
+    ILease<T> Lease(TimeSpan timeout);
+
+    /// <summary><inheritdoc cref="LeaseAsync(int, CancellationToken)"/></summary>
+    /// <param name="millisecondsTimeout">Time to wait for a lease.</param>
+    /// <exception cref="T:System.ObjectDisposedException">The current instance has already been disposed.</exception>
+    /// <exception cref="LeaseTimeoutException">Failed to acquire a lease in <paramref name="millisecondsTimeout"/></exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="millisecondsTimeout"/> is a negative number other than -1 milliseconds, which represents an infinite time-out -or- timeout is greater than <see cref="System.Int32.MaxValue"/>.</exception>
+    ILease<T> Lease(int millisecondsTimeout);
 }

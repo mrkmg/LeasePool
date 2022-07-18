@@ -103,42 +103,39 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         configuration.OnReturn) { }
 
     /// <inheritdoc />
-    public Task<ILease<T>> Lease() => Lease(Timeout.Infinite, CancellationToken.None);
+    public Task<ILease<T>> LeaseAsync() => LeaseAsync(Timeout.Infinite, CancellationToken.None);
     
     /// <inheritdoc />
-    public Task<ILease<T>> Lease(CancellationToken cancellationToken) => Lease(Timeout.Infinite, cancellationToken);
+    public Task<ILease<T>> LeaseAsync(CancellationToken cancellationToken) => LeaseAsync(Timeout.Infinite, cancellationToken);
     
     /// <inheritdoc />
-    public Task<ILease<T>> Lease(TimeSpan timeout) => Lease(timeout, CancellationToken.None);
+    public Task<ILease<T>> LeaseAsync(TimeSpan timeout) => LeaseAsync(timeout, CancellationToken.None);
     
     /// <inheritdoc />
-    public Task<ILease<T>> Lease(TimeSpan timeout, CancellationToken cancellationToken) 
-        => Lease(
+    public Task<ILease<T>> LeaseAsync(TimeSpan timeout, CancellationToken cancellationToken) 
+        => LeaseAsync(
             timeout.TotalMilliseconds is > -1 and <= int.MaxValue 
                 ? (int)timeout.TotalMilliseconds 
                 : throw new ArgumentOutOfRangeException(nameof(timeout)), 
             cancellationToken);
     
     /// <inheritdoc />
-    public Task<ILease<T>> Lease(int millisecondsTimeout) => Lease(millisecondsTimeout, CancellationToken.None);
+    public Task<ILease<T>> LeaseAsync(int millisecondsTimeout) => LeaseAsync(millisecondsTimeout, CancellationToken.None);
     
     /// <inheritdoc />
-    public async Task<ILease<T>> Lease(int millisecondsTimeout, CancellationToken token)
+    public async Task<ILease<T>> LeaseAsync(int millisecondsTimeout, CancellationToken token)
     {
-        if (millisecondsTimeout < -1)
-            throw new ArgumentOutOfRangeException(nameof(millisecondsTimeout));
-        
-        if (_isDisposed) throw new ObjectDisposedException(nameof(LeasePool<T>));
+        ValidateCanLease(millisecondsTimeout);
         
         var start = Environment.TickCount;
         
         if (_leasesSemaphore is not null)
-            await Waiter(_leasesSemaphore, start, millisecondsTimeout, token).ConfigureAwait(false);
+            await WaiterAsync(_leasesSemaphore, start, millisecondsTimeout, token).ConfigureAwait(false);
         
         T obj;
         while (true)
         {
-            await Waiter(_queueSemaphore, start, millisecondsTimeout, token).ConfigureAwait(false);
+            await WaiterAsync(_queueSemaphore, start, millisecondsTimeout, token).ConfigureAwait(false);
             var didRetrieve = _objects.TryDequeue(out var o);
             _queueSemaphore.Release();
             
@@ -158,7 +155,49 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         OnLease?.Invoke(obj);
         return new ActiveLease(this,  obj);
     }
-    
+
+    /// <inheritdoc />
+    public ILease<T> Lease() => Lease(Timeout.Infinite);
+
+    /// <inheritdoc />
+    public ILease<T> Lease(TimeSpan timeout) => Lease(
+        timeout.TotalMilliseconds is > -1 and <= int.MaxValue 
+            ? (int)timeout.TotalMilliseconds 
+            : throw new ArgumentOutOfRangeException(nameof(timeout)));
+
+    /// <inheritdoc />
+    public ILease<T> Lease(int millisecondsTimeout)
+    {
+        ValidateCanLease(millisecondsTimeout);
+        var start = Environment.TickCount;
+        
+        if (_leasesSemaphore is not null)
+            Waiter(_leasesSemaphore, start, millisecondsTimeout);
+        
+        T obj;
+        while (true)
+        {
+            Waiter(_queueSemaphore, start, millisecondsTimeout);
+            var didRetrieve = _objects.TryDequeue(out var o);
+            _queueSemaphore.Release();
+            
+            if (!didRetrieve)
+            {
+                obj = Initializer();
+                break;
+            }
+            
+            if (Validator?.Invoke(o.Object) ?? true)
+            {
+                obj = o.Object;
+                break;
+            }
+            Finalizer(o.Object);
+        }
+        OnLease?.Invoke(obj);
+        return new ActiveLease(this,  obj);
+    }
+
     private void Return(ActiveLease obj)
     {
         if (_isDisposed)
@@ -218,14 +257,47 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         
         GC.SuppressFinalize(this);
     }
-
-    private static Task<bool> Waiter(SemaphoreSlim sem, int start, int timeout, CancellationToken innerToken)
+    
+    private void ValidateCanLease(int millisecondsTimeout)
     {
-        if (timeout is -1 or 0) return sem.WaitAsync(timeout, innerToken);
+        if (_isDisposed) throw new ObjectDisposedException(nameof(LeasePool<T>));
+        
+        if (millisecondsTimeout < -1)
+            throw new ArgumentOutOfRangeException(nameof(millisecondsTimeout));
+    }
+
+    private static void Waiter(SemaphoreSlim sem, int start, int timeout)
+    {
+        if (timeout is -1 or 0)
+        {
+            if (!sem.Wait(timeout))
+            {
+                throw new LeaseTimeoutException(timeout);
+            }
+            return;
+        }
         var remaining = timeout - Environment.TickCount - start;
-        if (remaining < 0) 
-            throw new LeaseTimeoutException($"Timeout of {timeout}ms exceeded");
-        return sem.WaitAsync(remaining, innerToken);
+        if (remaining < 0 || !sem.Wait(timeout))
+        {
+            throw new LeaseTimeoutException(timeout);
+        }
+    }
+
+    private static async Task WaiterAsync(SemaphoreSlim sem, int start, int timeout, CancellationToken innerToken)
+    {
+        if (timeout is -1 or 0)
+        {
+            if (!await sem.WaitAsync(timeout, innerToken).ConfigureAwait(false))
+            {
+                throw new LeaseTimeoutException(timeout);
+            }
+            return;
+        }
+        var remaining = timeout - Environment.TickCount - start;
+        if (remaining < 0 || !await sem.WaitAsync(timeout, innerToken).ConfigureAwait(false))
+        {
+            throw new LeaseTimeoutException(timeout);
+        }
     }
 
     private readonly struct ActiveLease : ILease<T>
@@ -266,6 +338,6 @@ public class LeaseTimeoutException : Exception
     /// <summary>
     /// Initializes a new instance of the <see cref="LeaseTimeoutException"/> class.
     /// </summary>
-    /// <param name="message"></param>
-    public LeaseTimeoutException(string message) : base(message) { }
+    /// <param name="timeout">The total length of the timeout</param>
+    public LeaseTimeoutException(int timeout) : base($"The timeout of {timeout}ms was exceeded") { }
 }
