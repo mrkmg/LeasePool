@@ -12,7 +12,7 @@ using LeasePool;
 ILeasePool<Connection> pool = new LeasePool<Connection>(
     new LeasePoolConfiguration<Connection>()
     {
-        MaxLeases = 10,
+        MaxSize = 10,
         IdleTimeout = TimeSpan.FromSeconds(30),
         Initializer = () => { 
             var connection = new Connection("hostname", "username", "password");
