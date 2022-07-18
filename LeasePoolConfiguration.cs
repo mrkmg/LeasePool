@@ -6,10 +6,12 @@
 /// <typeparam name="T"></typeparam>
 public class LeasePoolConfiguration<T>
 {
+    public static LeasePoolConfiguration<T> Default { get; } = new();
+
     /// <summary>
     /// The maximum number of total instance of T that can be leased or idle in the pool.
     /// </summary>
-    public int MaxSize { get; set; } = DefaultMaxCount;
+    public int MaxSize { get; set; } = -1;
     
     /// <summary>
     /// How long an instance of T can be idle in the pool before it is automatically disposed.
@@ -17,7 +19,7 @@ public class LeasePoolConfiguration<T>
     /// If set to zero, objects are never kept in a pool, and are disposed immediately
     /// when returned to the pool.
     /// </summary>
-    public int IdleTimeout { get; set; } = DefaultIdleTimeout;
+    public int IdleTimeout { get; set; } = -1;
     
     /// <summary>
     /// A factory method that creates an instance of T.
@@ -54,13 +56,11 @@ public class LeasePoolConfiguration<T>
     /// <remarks>Does nothing by default.</remarks>
     public Action<T> OnReturn { get; set; } = DefaultOnReturn;
 
-    public static readonly int DefaultMaxCount = -1;
-    public static readonly int DefaultIdleTimeout = -1;
-    public static readonly Func<T> DefaultInitializer = Activator.CreateInstance<T>;
-    public static readonly Func<T, bool> DefaultValidator = _ => true;
-    public static readonly Action<T> DefaultOnReturn = _ => { };
-    public static readonly Action<T> DefaultOnLease = _ => { };
-    public static readonly Action<T> DefaultFinalizer = t =>
+    private static readonly Func<T> DefaultInitializer = Activator.CreateInstance<T>;
+    private static readonly Func<T, bool> DefaultValidator = _ => true;
+    private static readonly Action<T> DefaultOnReturn = _ => { };
+    private static readonly Action<T> DefaultOnLease = _ => { };
+    private static readonly Action<T> DefaultFinalizer = t =>
     {
         if (t is IDisposable disposable) disposable.Dispose();
     };

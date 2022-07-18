@@ -15,21 +15,12 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     private readonly object _lock = new();
     private bool _isDisposed;
 
-    public LeasePool(int? maxSize = null,
-                     int? idleTimeout = null,
-                     Func<T>? initializer = null,
-                     Action<T>? finalizer = null,
-                     Func<T, bool>? validator = null,
-                     Action<T>? onLease = null,
-                     Action<T>? onReturn = null) : this(new()
+    public LeasePool() : this(LeasePoolConfiguration<T>.Default) { }
+
+    public LeasePool(int maxSize, int idleTimeout) : this(new()
     {
-        MaxSize = maxSize ?? LeasePoolConfiguration<T>.DefaultMaxCount,
-        IdleTimeout = idleTimeout ?? LeasePoolConfiguration<T>.DefaultIdleTimeout,
-        Initializer = initializer ?? LeasePoolConfiguration<T>.DefaultInitializer,
-        Finalizer = finalizer ?? LeasePoolConfiguration<T>.DefaultFinalizer,
-        Validator = validator ?? LeasePoolConfiguration<T>.DefaultValidator,
-        OnLease = onLease ?? LeasePoolConfiguration<T>.DefaultOnLease,
-        OnReturn = onReturn ?? LeasePoolConfiguration<T>.DefaultOnReturn
+        MaxSize = maxSize,
+        IdleTimeout = idleTimeout
     }) { }
 
     /// <summary>
@@ -47,7 +38,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
             throw new ArgumentException("Must be greater than 0 or -1", nameof(Configuration.IdleTimeout));
         
         _objects = new();
-
+        
         if (Configuration.IdleTimeout > 0)
         {
             _timer = new(Configuration.IdleTimeout);
