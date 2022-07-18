@@ -5,10 +5,11 @@ namespace LeasePool;
 
 /// <inheritdoc />
 [SuppressMessage("ReSharper", "UnusedType.Global")]
+[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 public class LeasePool<T> : ILeasePool<T> where T : class
 {
+    protected readonly LeasePoolConfiguration<T> Configuration;
     private readonly Queue<LeasePoolItem> _objects;
-    private readonly LeasePoolConfiguration<T> _configuration;
     private readonly SemaphoreSlim? _semaphore;
     private readonly Timer? _timer;
     private readonly object _lock = new();
@@ -37,26 +38,26 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     /// <param name="configuration"></param>
     public LeasePool(LeasePoolConfiguration<T> configuration)
     {
-        _configuration = configuration;
+        Configuration = configuration;
         
-        if (_configuration.MaxSize is < -1 or 0)
-            throw new ArgumentException("Must be greater than 0 or -1", nameof(_configuration.MaxSize));
+        if (Configuration.MaxSize is < -1 or 0)
+            throw new ArgumentException("Must be greater than 0 or -1", nameof(Configuration.MaxSize));
         
-        if (_configuration.IdleTimeout is < -1 or 0)
-            throw new ArgumentException("Must be greater than 0 or -1", nameof(_configuration.IdleTimeout));
+        if (Configuration.IdleTimeout is < -1 or 0)
+            throw new ArgumentException("Must be greater than 0 or -1", nameof(Configuration.IdleTimeout));
         
         _objects = new();
 
-        if (_configuration.IdleTimeout > 0)
+        if (Configuration.IdleTimeout > 0)
         {
-            _timer = new(_configuration.IdleTimeout);
+            _timer = new(Configuration.IdleTimeout);
             _timer.Elapsed += (_, _) => Cleanup();
         }
         
-        if (_configuration.MaxSize > 0)
-            _semaphore = new(_configuration.MaxSize);
+        if (Configuration.MaxSize > 0)
+            _semaphore = new(Configuration.MaxSize);
     }
-    
+
     /// <inheritdoc />
     public Task<ILease<T>> Lease() => Lease(Timeout.Infinite, CancellationToken.None);
     
@@ -91,16 +92,16 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         {
             while (_objects.TryDequeue(out var o))
             {
-                if (_configuration.Validator(o.Object))
+                if (Configuration.Validator(o.Object))
                 {
                     obj = o.Object;
                     break;
                 }
-                _configuration.Finalizer(o.Object);
+                Configuration.Finalizer(o.Object);
             }
         }
-        obj ??= _configuration.Initializer();
-        _configuration.OnLease(obj);
+        obj ??= Configuration.Initializer();
+        Configuration.OnLease(obj);
         return new ActiveLease(this,  obj);
     }
     
@@ -109,12 +110,12 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         if (_isDisposed)
             return;
 
-        _configuration.OnReturn(obj.Value);
+        Configuration.OnReturn(obj.Value);
         
         // If IdleTimeout is zero, we immediately finalize the object.
-        if (_configuration.IdleTimeout == 0)
+        if (Configuration.IdleTimeout == 0)
         {
-            _configuration.Finalizer(obj.Value);
+            Configuration.Finalizer(obj.Value);
             _semaphore?.Release();
             return;
         }
@@ -133,10 +134,10 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         lock (_lock)
         {
             var didRemove = false;
-            while (_objects.TryPeek(out var item) && item.LastUsed.AddMilliseconds(_configuration.IdleTimeout) <= DateTime.UtcNow)
+            while (_objects.TryPeek(out var item) && item.LastUsed.AddMilliseconds(Configuration.IdleTimeout) <= DateTime.UtcNow)
             {
                 _objects.Dequeue();
-                _configuration.Finalizer(item.Object);
+                Configuration.Finalizer(item.Object);
                 didRemove = true;
             }
             if (didRemove) _timer?.Start();
@@ -156,7 +157,7 @@ public class LeasePool<T> : ILeasePool<T> where T : class
         _timer?.Dispose();
         
         foreach (var obj in _objects)
-            _configuration.Finalizer(obj.Object);
+            Configuration.Finalizer(obj.Object);
         
         GC.SuppressFinalize(this);
     }

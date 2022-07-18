@@ -1,4 +1,4 @@
-﻿LeasePool - V0.4.0
+﻿LeasePool - V0.5.0
 
 A simple, configurable, thread-safe Object Pool. Provides a mechanism for constructing, validating, and disposing of objects on the fly, as well limiting the maximum number of total instantiated object and auto-disposal of stale objects.
 
@@ -10,7 +10,7 @@ Adheres to netstandard2.1
 using LeasePool;
 
 ILeasePool<Connection> pool = new LeasePool<Connection>(
-    new LeasePoolConfig<Connection>()
+    new LeasePoolConfiguration<Connection>()
     {
         MaxLeases = 10,
         IdleTimeout = TimeSpan.FromSeconds(30),
