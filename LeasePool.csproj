@@ -11,7 +11,7 @@
     <Description>A simple, configurable, thread-safe Object Pool. Provides a mechanism for constructing, validating, and disposing of objects on the fly, as well limiting the maximum number of total instantiated object and auto-disposal of stale objects.</Description>
     <Copyright>2022 Public Domain</Copyright>
     <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
-    <PackageVersion>0.3.0</PackageVersion>
+    <PackageVersion>0.4.0</PackageVersion>
     <PackageProjectUrl>https://github.com/mrkmg/LeasePool</PackageProjectUrl>
     <RepositoryUrl>https://github.com/mrkmg/LeasePool.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

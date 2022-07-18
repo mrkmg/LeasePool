@@ -1,4 +1,4 @@
-﻿LeasePool - V0.3.0
+﻿LeasePool - V0.4.0
 
 A simple, configurable, thread-safe Object Pool. Provides a mechanism for constructing, validating, and disposing of objects on the fly, as well limiting the maximum number of total instantiated object and auto-disposal of stale objects.
 

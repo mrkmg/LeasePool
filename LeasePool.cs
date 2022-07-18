@@ -14,13 +14,30 @@ public class LeasePool<T> : ILeasePool<T> where T : class
     private readonly object _lock = new();
     private bool _isDisposed;
 
+    public LeasePool(int? maxSize = null,
+                     int? idleTimeout = null,
+                     Func<T>? initializer = null,
+                     Action<T>? finalizer = null,
+                     Func<T, bool>? validator = null,
+                     Action<T>? onLease = null,
+                     Action<T>? onReturn = null) : this(new()
+    {
+        MaxSize = maxSize ?? LeasePoolConfiguration<T>.DefaultMaxCount,
+        IdleTimeout = idleTimeout ?? LeasePoolConfiguration<T>.DefaultIdleTimeout,
+        Initializer = initializer ?? LeasePoolConfiguration<T>.DefaultInitializer,
+        Finalizer = finalizer ?? LeasePoolConfiguration<T>.DefaultFinalizer,
+        Validator = validator ?? LeasePoolConfiguration<T>.DefaultValidator,
+        OnLease = onLease ?? LeasePoolConfiguration<T>.DefaultOnLease,
+        OnReturn = onReturn ?? LeasePoolConfiguration<T>.DefaultOnReturn
+    }) { }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="LeasePool{T}"/> class.
     /// </summary>
     /// <param name="configuration"></param>
-    public LeasePool(LeasePoolConfiguration<T>? configuration = null)
+    public LeasePool(LeasePoolConfiguration<T> configuration)
     {
-        _configuration = configuration ?? new LeasePoolConfiguration<T>();
+        _configuration = configuration;
         
         if (_configuration.MaxSize is < -1 or 0)
             throw new ArgumentException("Must be greater than 0 or -1", nameof(_configuration.MaxSize));
